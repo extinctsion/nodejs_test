@@ -3,13 +3,19 @@ const router = express.Router();
 
 const mongoose = require("mongoose");
 const Product = require("../models/product");
+const product = require("../models/product");
 
 router.get("/", (req, res, next) => {
   Product.find()
+  .select('name price _id')
     .exec()
     .then((docs) => {
-      console.log(docs);
-      res.status(200).json(docs);
+        const response = {
+            count: docs.length,
+            products: docs
+        };
+      console.log(response);
+      res.status(200).json(response);
     })
     .catch((err) => {
       console.log(err);
@@ -65,17 +71,32 @@ router.get("/:productId", (req, res, next) => {
 
 router.patch("/:productId", (req, res, next) => {
   const id = req.params.productId;
-  res.status(200).json({
-    message: "Updated product! " + id,
-  });
+  const updateOps = {};
+
+  for (const ops of req.body) {
+    updateOps[ops.propName] = ops.value;
+  }
+  //Using updateOne instead of update as it is not working
+  Product.updateOne({ _id: id }, { $set: updateOps })
+    .exec()
+    .then(result => {
+      console.log(result);
+      res.status(200).json(result);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(500).json({
+            error: err
+        });
+    });
 });
 
 router.delete("/:productId", (req, res, next) => {
-    //  const prod = Product.remove(req.params.id);
+  //  const prod = Product.remove(req.params.id);
   const id = req.params.productId;
   Product.deleteOne({ _id: id })
     .exec()
-    .then(result => {
+    .then((result) => {
       res.status(200).json(result);
     })
     .catch((err) => {
